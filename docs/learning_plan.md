@@ -21,4 +21,3 @@ Understand producer/consumer messaging, acknowledgement, retries, duplicate deli
 - What does at-least-once delivery imply?
 - Why is idempotency important?
 - When should a failed message stop retrying?
-- How could this queue sit behind the Day 4 webhook receiver?
