@@ -36,13 +36,13 @@ delivery handling.
 
 The system should follow:
 
-```text
+
 Producer -> Message Queue -> Consumer -> Inventory Service
                  |                |
                  |                +-> ACK after success
                  |
                  +-> retry on failure -> DLQ after max attempts
-````
+
 
 A successful message should be processed and acknowledged. A failed message
 should be retried, and a message that continues to fail should eventually be
@@ -55,7 +55,7 @@ into message, queue, producer, consumer, and inventory components.
 
 The intended structure was:
 
-```text
+
 src/
 └── meridian_queue/
     ├── __init__.py
@@ -64,7 +64,7 @@ src/
     ├── producer.py
     ├── consumer.py
     └── inventory.py
-```
+
 
 ### Investigation
 
@@ -74,13 +74,13 @@ so that the states of messages could be observed directly.
 
 The main lifecycle identified was:
 
-```text
+
 Pending -> In-Flight -> ACK
               |
               +-> Failure -> Retry -> Pending
                                 |
                                 +-> Max attempts -> DLQ
-```
+
 
 ### Result
 
@@ -113,13 +113,13 @@ Each component should have a clear responsibility.
 
 The system was separated into:
 
-```text
+
 message.py
 queue.py
 producer.py
 consumer.py
 inventory.py
-```
+
 
 The producer creates and publishes messages. The queue manages message state.
 The consumer retrieves and processes messages. The inventory service performs
@@ -132,7 +132,7 @@ and failed processing.
 
 A successful message follows:
 
-```text
+
 Producer
    |
    v
@@ -146,11 +146,11 @@ Inventory
    |
    v
 ACK
-```
+
 
 A failed message follows:
 
-```text
+
 Consumer
    |
    v
@@ -162,7 +162,7 @@ Retry
    +-> Success -> ACK
    |
    +-> Maximum attempts -> DLQ
-```
+
 
 ### Result
 
@@ -189,9 +189,9 @@ I needed to understand when a message should be acknowledged.
 
 A message should only be acknowledged after successful processing.
 
-```text
+
 receive -> process -> ACK
-```
+
 
 ### Actual Behavior
 
@@ -205,7 +205,7 @@ before processing it.
 
 The failure scenario would be:
 
-```text
+
 receive
    |
    v
@@ -215,7 +215,7 @@ ACK
 process
    |
    X crash
-```
+
 
 In that situation the queue would believe that processing had succeeded even
 though the business operation had not completed.
@@ -224,9 +224,9 @@ though the business operation had not completed.
 
 The ACK rule was established as:
 
-```text
+
 receive -> process successfully -> ACK
-```
+
 
 ### Lesson Learned
 
@@ -256,11 +256,11 @@ placed into the DLQ.
 The queue was designed to return failed messages for another attempt until the
 maximum number of attempts is reached.
 
-```text
+
 Attempt 1 -> Failure -> Retry
 Attempt 2 -> Failure -> Retry
 Attempt 3 -> Failure -> DLQ
-```
+
 
 ### Investigation
 
@@ -268,15 +268,15 @@ I separated failure handling into two possible outcomes.
 
 A temporary failure can recover:
 
-```text
+
 Failure -> Retry -> Success -> ACK
-```
+
 
 A permanent failure eventually becomes:
 
-```text
+
 Failure -> Retry -> Failure -> Retry -> Max Attempts -> DLQ
-```
+
 
 ### Result
 
@@ -313,23 +313,23 @@ have already been processed.
 
 For example:
 
-```text
-Event ID: evt-001
-SKU: SKU001
-Quantity: 25
-```
+
+         Event ID: evt-001
+         SKU: SKU001
+         Quantity: 25
+
 
 First delivery:
 
-```text
-evt-001 -> process -> SKU001 = 25
-```
+
+         evt-001 -> process -> SKU001 = 25
+
 
 Duplicate delivery:
 
-```text
-evt-001 -> already processed -> ignore
-```
+
+         evt-001 -> already processed -> ignore
+
 
 ### Investigation
 
@@ -361,23 +361,23 @@ Afternoon
 
 I ran the message queue tests using:
 
-```text
-python -m pytest tests/test_message_queue.py -v
-```
+
+         python -m pytest tests/test_message_queue.py -v
+
 
 The tests failed during collection with:
 
-```text
-ModuleNotFoundError: No module named 'meridian_queue'
-```
+
+         ModuleNotFoundError: No module named 'meridian_queue'
+
 
 ### Expected Behavior
 
 The test contained:
 
-```python
-from meridian_queue.message import Message
-```
+
+         from meridian_queue.message import Message
+
 
 Pytest should have been able to locate the `meridian_queue` package through the
 `src` directory.
@@ -393,31 +393,31 @@ configuration.
 
 The source directory was found to contain:
 
-```text
-src/
-├── consumer.py
-├── inventory.py
-├── message.py
-├── producer.py
-├── queue.py
-├── __init__.py
-└── meridian_queue/
-```
+
+         src/
+         ├── consumer.py
+         ├── inventory.py
+         ├── message.py
+         ├── producer.py
+         ├── queue.py
+         ├── __init__.py
+         └── meridian_queue/
+
 
 The implementation files were directly inside `src` instead of inside the
 `meridian_queue` package.
 
 The test expected:
 
-```text
-src/meridian_queue/message.py
-```
+
+         src/meridian_queue/message.py
+
 
 but the actual file was:
 
-```text
-src/message.py
-```
+
+         src/message.py
+
 
 ### What I Tried
 
@@ -425,22 +425,22 @@ I inspected the source directory and identified the incorrect package layout.
 
 The implementation files were then moved into:
 
-```text
-src/meridian_queue/
-```
+
+         src/meridian_queue/
+
 
 The final structure became:
 
-```text
-src/
-└── meridian_queue/
-    ├── __init__.py
-    ├── consumer.py
-    ├── inventory.py
-    ├── message.py
-    ├── producer.py
-    └── queue.py
-```
+
+         src/
+         └── meridian_queue/
+            ├── __init__.py
+            ├── consumer.py
+            ├── inventory.py
+            ├── message.py
+            ├── producer.py
+            └── queue.py
+
 
 ### Result
 
@@ -448,12 +448,12 @@ The package structure was corrected.
 
 The existing `pyproject.toml` configuration was retained:
 
-```toml
-[tool.pytest.ini_options]
-pythonpath = ["src"]
-testpaths = ["tests"]
-addopts = "-ra"
-```
+            toml
+         [tool.pytest.ini_options]
+         pythonpath = ["src"]
+         testpaths = ["tests"]
+         addopts = "-ra"
+
 
 No unnecessary configuration change was made.
 
@@ -478,15 +478,15 @@ Afternoon
 
 After correcting the package structure, I tested the package directly using:
 
-```text
-python -c "from meridian_queue.message import Message; print(Message)"
-```
+
+         python -c "from meridian_queue.message import Message; print(Message)"
+
 
 It still returned:
 
-```text
-ModuleNotFoundError: No module named 'meridian_queue'
-```
+
+         ModuleNotFoundError: No module named 'meridian_queue'
+
 
 ### Expected Behavior
 
@@ -503,9 +503,9 @@ examined.
 
 The `pyproject.toml` contains:
 
-```toml
-pythonpath = ["src"]
-```
+            toml
+         pythonpath = ["src"]
+
 
 This configuration is used by pytest. A direct `python -c` command does not
 automatically apply pytest's configured Python path.
@@ -517,9 +517,9 @@ was still incorrect.
 
 I returned to the actual project test command:
 
-```text
-python -m pytest tests/test_message_queue.py -v
-```
+
+         python -m pytest tests/test_message_queue.py -v
+
 
 ### Result
 
@@ -557,22 +557,22 @@ The test suite successfully collected four tests.
 
 The following command was executed:
 
-```text
-python -m pytest tests/test_message_queue.py -v
-```
+
+         python -m pytest tests/test_message_queue.py -v
+
 
 ### Result
 
 All four tests passed:
 
-```text
-tests/test_message_queue.py::test_publish_and_receive PASSED [ 25%]
-tests/test_message_queue.py::test_ack_removes_in_flight_message PASSED [ 50%]
-tests/test_message_queue.py::test_failed_message_is_requeued_before_max_attempts PASSED [ 75%]
-tests/test_message_queue.py::test_message_moves_to_dlq_after_max_attempts PASSED [100%]
 
-4 passed in 0.07s
-```
+            tests/test_message_queue.py::test_publish_and_receive PASSED [ 25%]
+            tests/test_message_queue.py::test_ack_removes_in_flight_message PASSED [ 50%]
+            tests/test_message_queue.py::test_failed_message_is_requeued_before_max_attempts PASSED [ 75%]
+            tests/test_message_queue.py::test_message_moves_to_dlq_after_max_attempts PASSED [100%]
+
+            4 passed in 0.07s
+
 
 ### Lesson Learned
 
@@ -600,9 +600,9 @@ through the basic queue path.
 
 A published message should become available to the consumer.
 
-```text
-Producer -> Queue -> Consumer
-```
+
+         Producer -> Queue -> Consumer
+
 
 ### Actual Behavior
 
@@ -612,15 +612,15 @@ The test passed.
 
 The test was executed as part of:
 
-```text
-python -m pytest tests/test_message_queue.py -v
-```
+
+         python -m pytest tests/test_message_queue.py -v
+
 
 ### Result
 
-```text
-test_publish_and_receive PASSED
-```
+
+         test_publish_and_receive PASSED
+
 
 ### Lesson Learned
 
@@ -644,9 +644,9 @@ message from active processing.
 A successfully processed message should be acknowledged and removed from the
 in-flight state.
 
-```text
-receive -> process -> ACK
-```
+
+         receive -> process -> ACK
+
 
 ### Actual Behavior
 
@@ -658,9 +658,9 @@ The test verified the state of the message after acknowledgement.
 
 ### Result
 
-```text
-test_ack_removes_in_flight_message PASSED
-```
+
+         test_ack_removes_in_flight_message PASSED
+
 
 ### Lesson Learned
 
@@ -684,9 +684,9 @@ I needed to verify that a failed message would not immediately disappear.
 A failed message should be returned to the pending state while it still has
 remaining attempts.
 
-```text
-In-Flight -> Failure -> Retry -> Pending
-```
+
+         In-Flight -> Failure -> Retry -> Pending
+
 
 ### Actual Behavior
 
@@ -699,9 +699,9 @@ delivery attempt.
 
 ### Result
 
-```text
-test_failed_message_is_requeued_before_max_attempts PASSED
-```
+
+         test_failed_message_is_requeued_before_max_attempts PASSED
+
 
 ### Lesson Learned
 
@@ -725,14 +725,14 @@ I needed to verify what happens when a message fails repeatedly.
 Once the maximum number of attempts is reached, the message should no longer
 remain in the normal queue and should instead be placed in the DLQ.
 
-```text
-Attempt 1 -> Failure
-Attempt 2 -> Failure
-Attempt 3 -> Failure
-              |
-              v
-             DLQ
-```
+
+         Attempt 1 -> Failure
+         Attempt 2 -> Failure
+         Attempt 3 -> Failure
+                     |
+                     v
+                     DLQ
+
 
 ### Actual Behavior
 
@@ -745,9 +745,9 @@ attempts.
 
 ### Result
 
-```text
-test_message_moves_to_dlq_after_max_attempts PASSED
-```
+
+         test_message_moves_to_dlq_after_max_attempts PASSED
+
 
 ### Lesson Learned
 
@@ -777,9 +777,9 @@ duplicate protection.
 
 The core queue tests are passing.
 
-```text
-4 passed in 0.07s
-```
+
+            4 passed in 0.07s
+
 
 The verified queue behavior currently includes message publishing and
 receiving, acknowledgement, retry handling, and dead-letter handling.
@@ -795,9 +795,9 @@ The core message queue functionality is working.
 
 The architecture has also been documented separately in:
 
-```text
-docs/architecture.md
-```
+
+         docs/architecture.md
+
 
 The architecture document focuses on how the message queue works, while this
 journal records the actual learning process, blockers, investigation, and
@@ -849,9 +849,9 @@ correcting the package structure, and rerunning the tests successfully.
 
 The current verified result is:
 
-```text
-4 passed in 0.07s
-```
+
+         4 passed in 0.07s
+
 
 The core Phase 1 message queue functionality is therefore working.
 
@@ -882,23 +882,23 @@ queue concept required by the Meridian Pivot Phase 1 assignment.
 
 I initially created the development requirements file with the wrong filename:
 
-```text
-requiements-dev.txt
-````
+
+         requiements-dev.txt
+
 
 The intended filename was:
 
-```text
-requirements-dev.txt
-```
+
+         requirements-dev.txt
+
 
 ### Expected Behavior
 
 The development requirements file should use the standard filename:
 
-```text
-requirements-dev.txt
-```
+
+         requirements-dev.txt
+
 
 so that it can be clearly identified as containing development and testing
 dependencies.
@@ -916,9 +916,9 @@ incorrect rather than there being a problem with the requirements content.
 
 The file was renamed to:
 
-```text
-requirements-dev.txt
-```
+
+         requirements-dev.txt
+
 
 ### Lesson Learned
 
@@ -934,9 +934,9 @@ dependency files.
 
 Running pytest initially produced:
 
-```text
-ModuleNotFoundError: No module named 'meridian_queue'
-```
+
+         ModuleNotFoundError: No module named 'meridian_queue'
+
 
 The testing framework could not correctly locate the source package.
 
@@ -945,9 +945,9 @@ The testing framework could not correctly locate the source package.
 I needed pytest to recognize the modern `src/` project layout so that tests
 could import the application package using:
 
-```python
-from meridian_queue.message import Message
-```
+            python
+         from meridian_queue.message import Message
+
 
 I also wanted the Python path configuration to be stored permanently in the
 project configuration instead of relying on manual terminal flags.
@@ -956,15 +956,15 @@ project configuration instead of relying on manual terminal flags.
 
 The intended pytest configuration was placed in a file named:
 
-```text
-project.toml
-```
+
+         project.toml
+
 
 instead of the standardized:
 
-```text
-pyproject.toml
-```
+
+         pyproject.toml
+
 
 Because pytest looks for project configuration in `pyproject.toml`, it did not
 load the intended `tool.pytest.ini_options` settings.
@@ -975,9 +975,9 @@ As a result, the configured `src` Python path was ignored.
 
 The configuration file was renamed to:
 
-```text
-pyproject.toml
-```
+
+         pyproject.toml
+
 
 After the filename was corrected, pytest recognized the configuration.
 
@@ -985,10 +985,10 @@ After the filename was corrected, pytest recognized the configuration.
 
 The relevant configuration is:
 
-```toml
-[tool.pytest.ini_options]
-pythonpath = ["src"]
-```
+            toml
+         [tool.pytest.ini_options]
+         pythonpath = ["src"]
+
 
 This allows pytest to locate the package inside the `src/` directory without
 requiring a manual Python path argument every time the tests are run.
@@ -997,22 +997,22 @@ requiring a manual Python path argument every time the tests are run.
 
 The test command was then run again:
 
-```text
-python -m pytest tests/test_message_queue.py -v
-```
+
+         python -m pytest tests/test_message_queue.py -v
+
 
 The tests were successfully collected and executed:
 
-```text
-collected 4 items
 
-tests/test_message_queue.py::test_publish_and_receive PASSED
-tests/test_message_queue.py::test_ack_removes_in_flight_message PASSED
-tests/test_message_queue.py::test_failed_message_is_requeued_before_max_attempts PASSED
-tests/test_message_queue.py::test_message_moves_to_dlq_after_max_attempts PASSED
+         collected 4 items
 
-4 passed in 0.07s
-```
+         tests/test_message_queue.py::test_publish_and_receive PASSED
+         tests/test_message_queue.py::test_ack_removes_in_flight_message PASSED
+         tests/test_message_queue.py::test_failed_message_is_requeued_before_max_attempts PASSED
+         tests/test_message_queue.py::test_message_moves_to_dlq_after_max_attempts PASSED
+
+         4 passed in 0.07s
+
 
 ### Lesson Learned
 
@@ -1023,5 +1023,165 @@ The incident also reinforced the importance of reading the exact error,
 checking the project structure, and verifying configuration loading before
 changing application code.
 
-```
-```
+
+
+# Learning & Blocker Journal
+
+## Day 4 — The Meridian Pivot
+
+### Pivot analysis
+
+Time
+
+Day 4 — Pivot received.
+
+Problem
+
+The client removed the synchronous printer REST API and required the kiosk
+service to use an asynchronous message queue and webhook model instead.
+
+Expected behavior
+
+A QR scan should create a pending print request. The attendee should only
+become checked in after the printer confirms that the badge has actually been
+printed.
+
+Investigation
+
+I compared the original synchronous flow with the new asynchronous
+requirement. The main architectural change was that the check-in request could
+no longer wait for the printer response. The system therefore needed an
+explicit pending state and a separate completion event.
+
+Result
+
+The design was changed to use a print queue, a pending attendee state, and a
+webhook completion path.
+
+Lesson learned
+
+Asynchronous systems introduce eventual consistency. A request being accepted
+does not mean the underlying operation has completed.
+
+### Duplicate scan analysis
+
+Time
+
+Day 4 — Duplicate-scan requirement.
+
+Problem
+
+The client requires that an attendee who scans more than once must not receive
+multiple badges.
+
+Expected behavior
+
+A duplicate scan while the first print job is pending should not create a new
+print job. A scan after successful completion should also not create another
+job.
+
+Investigation
+
+The attendee state was associated with a job ID. The service checks whether
+the attendee is already `PENDING` or `CHECKED_IN` before creating a new print
+request.
+
+Result
+
+Repeated scans reuse the existing state and do not create additional print
+jobs.
+
+Lesson learned
+
+Duplicate protection must be part of the business logic because asynchronous
+processing makes repeated requests and repeated events normal possibilities.
+
+### Webhook security
+
+Time
+
+Day 4 — Webhook implementation.
+
+Problem
+
+The application cannot trust an arbitrary request claiming that a badge has
+been printed.
+
+Expected behavior
+
+A valid signed webhook should be accepted. A missing or invalid signature
+should return HTTP 403.
+
+Investigation
+
+I implemented HMAC-SHA256 signing using a shared secret and used constant-time
+signature comparison when validating incoming events.
+
+Result
+
+Valid signatures are accepted and invalid signatures are rejected.
+
+Lesson learned
+
+Webhook authentication must happen before an external event is allowed to
+change application state.
+
+### Idempotent webhook processing
+
+Time
+
+Day 4 — Completion event handling.
+
+Problem
+
+An asynchronous vendor may deliver the same completion event more than once.
+
+Expected behavior
+
+Repeated delivery of the same event must not create another business effect.
+
+Investigation
+
+Webhook event IDs are stored after successful authentication and job IDs are
+checked against the attendee's current print job.
+
+Result
+
+Duplicate events do not repeat the check-in operation, and stale job
+notifications cannot complete another job.
+
+Lesson learned
+
+At-least-once delivery requires idempotent event processing.
+
+### Testing
+
+Time
+
+Day 4 — Regression testing.
+
+Problem
+
+The pivot changes the core integration and could break existing check-in
+behavior.
+
+Expected behavior
+
+The new asynchronous flow must support at least three attendees and must
+prevent duplicate badge printing.
+
+Investigation
+
+Automated tests were added for pending state, successful webhook completion,
+duplicate scans, duplicate webhooks, invalid signatures, missing signatures,
+and the three-attendee scenario.
+
+Result
+
+The asynchronous flow and the client's duplicate-scan requirement were
+verified by automated tests.
+
+Lesson learned
+
+A pivot should be accompanied by regression tests that directly correspond
+to the client's acceptance criteria.
