@@ -8,6 +8,9 @@ version = "0.1.0"
 description = "Phase 1 message queue learning prototype for The Meridian Pivot"
 requires-python = ">=3.12"
 
+[tool.setuptools.packages.find]
+where = ["src"]
+
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
