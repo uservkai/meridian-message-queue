@@ -143,7 +143,7 @@ Run the cache tests with:
       python -m pytest tests/test_cache.py -v
 
 
-### Phase 3 - Solstice Async Badge Check-In
+### Phase 3-4 - This project implements the Solstice Events Co. asynchronous pivot delivered during the Day 4–5 refactor and review.
 
 This project implements the Day 4 Meridian Pivot for Solstice Events Co.
 
@@ -221,6 +221,7 @@ Open:
       python -m pytest -v
 
 ## Project Structure
+            journal.md
             src/solstice_checkin/
             ├── app.py
             ├── models.py
@@ -237,11 +238,11 @@ Open:
             docs/
             ├── architecture.md
             ├── scope_delta.md
-            └── journal.md
+
 ## Pivot Documentation
 
 The architectural change and trade-offs are documented in
         **docs/scope_delta.md**
 
 The engineering learning and troubleshooting process is recorded in
-        **docs/journal.md**
+        **journal.md**
